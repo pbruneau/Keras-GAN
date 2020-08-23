@@ -3,7 +3,7 @@ from __future__ import print_function, division
 from keras.datasets import mnist
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply, GaussianNoise
 from keras.layers import BatchNormalization, Activation, Embedding, ZeroPadding2D
-from keras.layers import MaxPooling2D, merge
+from keras.layers import MaxPooling2D, Lambda, merge
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
@@ -12,6 +12,8 @@ from keras import losses
 from keras.utils import to_categorical
 import keras.backend as K
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -67,11 +69,16 @@ class AdversarialAutoencoder():
         h = LeakyReLU(alpha=0.2)(h)
         mu = Dense(self.latent_dim)(h)
         log_var = Dense(self.latent_dim)(h)
-        latent_repr = merge([mu, log_var],
-                mode=lambda p: p[0] + K.random_normal(K.shape(p[0])) * K.exp(p[1] / 2),
-                output_shape=lambda p: p[0])
-
-        return Model(img, latent_repr)
+        #latent_repr = merge([mu, log_var],
+        #        mode=lambda p: p[0] + K.random_normal(K.shape(p[0])) * K.exp(p[1] / 2),
+        #        output_shape=lambda p: p[0])
+        # Fix according to https://github.com/flyyufelix/DenseNet-Keras/issues/22
+        latent_repr = Lambda(lambda p: p[0] + K.random_normal(K.shape(p[0])) * K.exp(p[1] / 2))([mu, log_var])
+        
+        mod = Model(img, latent_repr)
+        mod.summary()
+        
+        return mod
 
     def build_decoder(self):
 
