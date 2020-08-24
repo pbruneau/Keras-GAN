@@ -7,7 +7,7 @@ from keras.layers import MaxPooling2D, Lambda, merge
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
-from keras.optimizers import Adam
+from keras.optimizers import Adam, SGD
 from keras import losses
 from keras.utils import to_categorical
 import keras.backend as K
@@ -26,7 +26,7 @@ class AdversarialAutoencoder():
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.latent_dim = latent_dim
 
-        optimizer = Adam(0.0002, 0.5)
+        optimizer = Adam(0.0002)
 
         # Build and compile the discriminator
         self.discriminator = self.build_discriminator()
@@ -177,7 +177,7 @@ class AdversarialAutoencoder():
         fig.savefig("images/mnist_%d.png" % epoch)
         plt.close()
 
-    def save_model(self):
+    def save_model(self, modid):
 
         def save(model, model_name):
             model_path = "saved_model/%s.json" % model_name
@@ -188,12 +188,15 @@ class AdversarialAutoencoder():
             open(options['file_arch'], 'w').write(json_string)
             model.save_weights(options['file_weight'])
 
-        save(self.encoder, "aae_encoder")
-        save(self.discriminator, "aae_discriminator")
+        save(self.encoder, "aae_encoder_"+modid)
+        save(self.discriminator, "aae_discriminator_"+modid)
 
 
 if __name__ == '__main__':
-    aae = AdversarialAutoencoder(latent_dim=2)
+    aae = AdversarialAutoencoder(latent_dim=10)
     # default to 20000
-    aae.train(epochs=40000, batch_size=32, sample_interval=200)
-    aae.save_model()
+    # actually not epoch, but batch. with batch_size=32, 1875 batches.
+    # paper recommends at least 1000 epochs, so epochs param would be 1875000.
+    # for now try out with 100K to see if improvement
+    aae.train(epochs=100000, batch_size=32, sample_interval=200)
+    aae.save_model('10D')
