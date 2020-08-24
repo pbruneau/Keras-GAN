@@ -19,12 +19,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class AdversarialAutoencoder():
-    def __init__(self):
+    def __init__(self, latent_dim=10):
         self.img_rows = 28
         self.img_cols = 28
         self.channels = 1
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
-        self.latent_dim = 10
+        self.latent_dim = latent_dim
 
         optimizer = Adam(0.0002, 0.5)
 
@@ -73,13 +73,13 @@ class AdversarialAutoencoder():
         #        mode=lambda p: p[0] + K.random_normal(K.shape(p[0])) * K.exp(p[1] / 2),
         #        output_shape=lambda p: p[0])
         # Fix according to https://github.com/flyyufelix/DenseNet-Keras/issues/22
+        #  other alternative at https://github.com/eriklindernoren/Keras-GAN/pull/218
         latent_repr = Lambda(lambda p: p[0] + K.random_normal(K.shape(p[0])) * K.exp(p[1] / 2))([mu, log_var])
-        
         mod = Model(img, latent_repr)
         mod.summary()
         
         return mod
-
+    
     def build_decoder(self):
 
         model = Sequential()
@@ -188,10 +188,12 @@ class AdversarialAutoencoder():
             open(options['file_arch'], 'w').write(json_string)
             model.save_weights(options['file_weight'])
 
-        save(self.generator, "aae_generator")
+        save(self.encoder, "aae_encoder")
         save(self.discriminator, "aae_discriminator")
 
 
 if __name__ == '__main__':
-    aae = AdversarialAutoencoder()
-    aae.train(epochs=20000, batch_size=32, sample_interval=200)
+    aae = AdversarialAutoencoder(latent_dim=2)
+    # default to 20000
+    aae.train(epochs=40000, batch_size=32, sample_interval=200)
+    aae.save_model()
